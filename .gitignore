@@ -27,3 +27,6 @@ site/
 docs/api/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+/packages/client/wasm/
+/packages/client/worker/
+/packages/client/targets/
