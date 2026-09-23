@@ -1,0 +1,133 @@
+[package]
+name = "probe-rs"
+version.workspace = true
+authors = [
+    "Noah Hüsser <yatekii@yatekii.ch>",
+    "Dominik Boehi <dominik.boehi@gmail.ch>",
+    "Jack Noppe <noppej@hotmail.com>",
+]
+edition.workspace = true
+description = "A collection of on chip debugging tools to communicate with microchips."
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+categories = ["embedded", "hardware-support", "development-tools::debugging"]
+keywords = ["embedded"]
+license.workspace = true
+
+# Don't include test binaries in published crate
+exclude = ["tests/"]
+
+[features]
+default = ["builtin-targets", "cmsisdap_v1"]
+
+# Enable all built in targets.
+builtin-targets = ["dep:bincode", "dep:serde_yaml", "dep:probe-rs-target"]
+
+# CMSIS-DAP v1 probes, which speak HID. Off for wasm32: hidapi is a C library, and
+# the browser reaches probes through WebUSB, which cannot talk to HID devices.
+cmsisdap_v1 = ["dep:hidapi"]
+
+# Enable helpers for testing
+test = []
+
+[dependencies]
+anyhow.workspace = true
+async-mutex.workspace = true
+async-trait.workspace = true
+docsplay.workspace = true
+thiserror.workspace = true
+probe-rs-target.workspace = true
+
+bincode = { version = "2", features = ["serde"], optional = true }
+bitfield = "0.19.0"
+bitvec = "1"
+# CMSIS-DAP v1 (HID). This branch of hidapi is the async port the rest of this fork is
+# written against; pinned by revision because it is a third-party branch.
+hidapi = { git = "https://github.com/Yatekii/hidapi-rs", rev = "cded1473ceabaf286a484c979dae86e1430fb74d", default-features = false, features = [
+    "linux-native",
+], optional = true }
+ihex = "3.0"
+itertools = "0.14"
+jep106 = "0.3"
+flate2 = "1.0"
+object = { version = "0.36", default-features = false, features = [
+    "elf",
+    "read_core",
+    "std",
+] }
+# nusb = { version = "0.2.0-beta", path = "../../../nusb" }
+nusb = "0.2.7"
+futures-lite = { version = "2", default-features = false }
+
+scroll = "0.12"
+serialport = { version = "4.6.0", default-features = false, features = [
+    "usbportinfo-interface",
+] }
+tracing = "0.1"
+uf2-decode = "0.2"
+espflash = { version = "3", default-features = false }
+parking_lot = "0.12.2"
+zerocopy = { version = "0.8.0", features = ["derive"] }
+
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+web-time = { workspace = true }
+
+# optional
+hexdump = { version = "0.1", optional = true }
+
+rmp-serde = { version = "1" }
+dunce = "1.0.5"
+
+[target.'cfg(target_arch="wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["Window", "WorkerGlobalScope"] }
+
+[target.'cfg(not(target_arch="wasm32"))'.dependencies]
+async-io = "2"
+# nusb 0.2.x runs blocking syscalls on a helper task when its APIs are awaited;
+# without a runtime feature it panics at maybe_future.rs:139. Not needed on wasm,
+# where WebUSB is natively async and `blocking` would not build anyway.
+nusb = { version = "0.2.7", features = ["smol"] }
+
+[build-dependencies]
+probe-rs-target = { workspace = true, optional = true }
+
+bincode = { version = "2", features = ["serde"], optional = true }
+serde_yaml = { version = "0.9", optional = true }
+
+[dev-dependencies]
+env_logger = "0.11"
+fastrand = "2.1"
+serde_json = "1"
+serde = "1"
+clap = { version = "4", features = ["derive"] }
+itm = { version = "0.9.0-rc.1", default-features = false }
+pretty_assertions = "1"
+test-case = "3"
+test-log = { version = "0.2.16", features = ["trace"] }
+termtree = "0.5"
+insta = { version = "1.38", default-features = false }
+pollster = { version = "0.4", features = ["macro"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[[package.metadata.release.pre-release-replacements]]
+file = "../CHANGELOG.md"
+search = "## \\[Unreleased\\]"
+replace = "## [{{version}}]\n\nReleased {{date}}"
+[[package.metadata.release.pre-release-replacements]]
+file = "../CHANGELOG.md"
+search = "\\[unreleased\\]: https://github.com/probe-rs/probe-rs/compare/v([a-z0-9.-]+)\\.\\.\\.master"
+replace = "[unreleased]: https://github.com/probe-rs/probe-rs/compare/v{{version}}...master\n[{{version}}]: https://github.com/probe-rs/probe-rs/compare/v$1...v{{version}}"
+
+[package.metadata.docs.rs]
+features = ["builtin-targets"]
+
+# Define a new cfg flag for docs.rs
+rustdoc-args = ["--cfg", "probers_docsrs"]
+
+[lints]
+workspace = true

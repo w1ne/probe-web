@@ -2027,7 +2027,6 @@ checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 [[package]]
 name = "probe-rs"
 version = "0.28.0"
-source = "git+https://github.com/beriberikix/probe-rs?branch=webusb%2Fnusb-0.2.7#f89910e349ff93fa05f73f48fc857ddb54cefa2b"
 dependencies = [
  "anyhow",
  "async-io",
@@ -2123,7 +2122,6 @@ dependencies = [
 [[package]]
 name = "probe-rs-target"
 version = "0.28.0"
-source = "git+https://github.com/beriberikix/probe-rs?branch=webusb%2Fnusb-0.2.7#f89910e349ff93fa05f73f48fc857ddb54cefa2b"
 dependencies = [
  "base64 0.22.1",
  "indexmap",

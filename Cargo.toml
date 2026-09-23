@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
 members = ["crates/*", "tools/*"]
+# Nested workspace: the vendored probe-rs tree is not a member of this one.
+exclude = ["vendor/probe-rs-fork"]
 
 [workspace.package]
 edition = "2024"
@@ -34,3 +36,10 @@ codegen-units = 1
 # For local work against a checkout, see .cargo/config.toml.
 [patch.crates-io]
 cmsis-pack = { git = "https://github.com/beriberikix/cmsis-pack-manager", branch = "wasm/optional-network" }
+
+# beriberikix/probe-rs is not writable here. vendor/probe-rs-fork is f89910e plus
+# the ST-Link interface walk. probe-rs-target is patched with it so the debug
+# crate does not see two copies of the chip-description types.
+[patch."https://github.com/beriberikix/probe-rs"]
+probe-rs = { path = "vendor/probe-rs-fork/probe-rs" }
+probe-rs-target = { path = "vendor/probe-rs-fork/probe-rs-target" }

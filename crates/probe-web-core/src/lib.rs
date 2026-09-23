@@ -9,6 +9,7 @@
 mod coredump;
 mod js;
 mod rtt;
+mod stlink;
 mod transport;
 
 use std::{cell::RefCell, path::Path, rc::Rc, time::Duration};
@@ -162,9 +163,12 @@ impl ProbeWebClient {
     }
 
     /// Open a probe and attach to a target. `request` is an `AttachRequest`.
-    /// Rejects with `kind` = `probe-not-found` | `probe-in-use` | `open-failed` | `attach-failed`.
+    /// Rejects with `kind` = `probe-not-found` | `probe-in-use` | `open-failed` | `stlink-interface` | `attach-failed`.
     pub async fn attach(&self, request: JsValue) -> Result<ProbeWebSession, JsValue> {
         let request: AttachRequest = from_js(request)?;
+        // Captured before `request` moves into the RPC call. An ST-Link whose debug
+        // interface was not claimed is not a CMSIS-DAP v1 (HID) failure.
+        let vendor_id = request.probe.vendor_id;
         match self
             .client
             .attach_probe(request)
@@ -177,7 +181,9 @@ impl ProbeWebClient {
             }),
             AttachResult::ProbeNotFound => Err(error("probe-not-found", "probe not found")),
             AttachResult::ProbeInUse => Err(error("probe-in-use", "probe is in use")),
-            AttachResult::FailedToOpenProbe(m) => Err(error("open-failed", m)),
+            AttachResult::FailedToOpenProbe(m) => {
+                Err(error(stlink::open_failure_kind(vendor_id, &m), m))
+            }
             AttachResult::TargetAttachFailed {
                 message,
                 connect_under_reset,

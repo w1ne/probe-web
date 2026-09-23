@@ -23,6 +23,7 @@
  */
 import init, { ProbeWebClient, ProbeWebSession, ProbeWebCore, elfSymbolAddress, rttSymbolAddress } from '../wasm/probe_web_core.js';
 import type * as Wire from './wire';
+import { classifyStlinkInterfaceError } from './stlink.ts';
 import { Debugger, type DebugSessionLike, type DebuggerOptions } from './debugger.ts';
 
 export type { Wire };
@@ -461,8 +462,13 @@ export class Client {
       resume_target: false,
       wait_for_probe: null,
     };
-    const raw = await this.raw.attach(req);
-    return new Session(raw, (path) => this.supports(path));
+    try {
+      const raw = await this.raw.attach(req);
+      return new Session(raw, (path) => this.supports(path));
+    } catch (error) {
+      // The prebuilt worker wasm still says `open-failed` for EndpointNotFound.
+      throw classifyStlinkInterfaceError(opts.probe.vendor_id, error);
+    }
   }
 }
 
