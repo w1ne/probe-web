@@ -13,11 +13,18 @@ pub(crate) fn open_failure_kind(vendor_id: u16, message: &str) -> &'static str {
 
 fn stlink_interface_failure(message: &str) -> bool {
     let message = message.to_ascii_lowercase();
+    // nusb's wasm backend replaces the DOMException with "WebUSB error (see logs)".
+    // "interface already claimed" is the busy claim. The other two are the browser's
+    // claimInterface text when it is still visible.
     message.contains("endpoint not found")
         || message.contains("endpointnotfound")
         || message.contains("interface not found")
         || message.contains("claiminterface")
         || message.contains("could not be claimed")
+        || message.contains("webusb error (see logs)")
+        || message.contains("interface already claimed")
+        || message.contains("failed to claim interface")
+        || message.contains("unable to claim interface")
 }
 
 #[cfg(test)]
@@ -42,6 +49,22 @@ mod test {
     fn unrelated_stlink_open_failure_stays_open_failed() {
         assert_eq!(
             open_failure_kind(0x0483, "permission denied"),
+            "open-failed"
+        );
+    }
+
+    #[test]
+    fn webusb_error_on_stlink_is_stlink_interface() {
+        assert_eq!(
+            open_failure_kind(0x0483, "WebUSB error (see logs)"),
+            "stlink-interface"
+        );
+    }
+
+    #[test]
+    fn webusb_error_on_daplink_stays_open_failed() {
+        assert_eq!(
+            open_failure_kind(0x0d28, "WebUSB error (see logs)"),
             "open-failed"
         );
     }

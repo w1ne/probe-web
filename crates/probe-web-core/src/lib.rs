@@ -166,8 +166,8 @@ impl ProbeWebClient {
     /// Rejects with `kind` = `probe-not-found` | `probe-in-use` | `open-failed` | `stlink-interface` | `attach-failed`.
     pub async fn attach(&self, request: JsValue) -> Result<ProbeWebSession, JsValue> {
         let request: AttachRequest = from_js(request)?;
-        // Captured before `request` moves into the RPC call. An ST-Link whose debug
-        // interface was not claimed is not a CMSIS-DAP v1 (HID) failure.
+        // Only FailedToOpenProbe is retagged. attach-failed and worker-crashed
+        // keep their kinds. A DAPLink claim error stays open-failed.
         let vendor_id = request.probe.vendor_id;
         match self
             .client
