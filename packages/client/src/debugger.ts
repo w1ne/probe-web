@@ -1064,6 +1064,11 @@ export class Debugger extends EventTarget {
     });
   }
 
+  /** Stop this debugger's RTT polling after any queued enable or poll completes. */
+  disableRtt(): Promise<void> {
+    return this.exclusive(async () => { this.rtt = null; });
+  }
+
   /** Read RTT once now (the poller does this while the core runs). */
   pollRtt(): Promise<void> {
     return this.exclusive(async () => {
