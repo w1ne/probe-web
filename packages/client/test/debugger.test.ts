@@ -243,6 +243,33 @@ describe('Debugger', () => {
     expect(f.calls.filter((c) => c !== 'status')).toEqual(['clear', 'step']);
   });
 
+  it('queues RTT disable behind a pending enable and retains breakpoint ownership', async () => {
+    const f = fakeSession();
+    let finish!: () => void;
+    let polls = 0;
+    (f.session as { createRttClient?: unknown }).createRttClient = () =>
+      new Promise<void>((resolve) => { finish = resolve; });
+    const raw = f.session.raw as Record<string, unknown>;
+    raw.rttChannels = async () => ({ up: [{ number: 0 }], down: [] });
+    raw.pollRtt = async () => { polls++; return []; };
+    const d = new Debugger(f.session);
+    await d.setInstructionBreakpoints([0x1234n]);
+    const enabling = d.enableRtt();
+    await Promise.resolve();
+    const disabling = d.disableRtt();
+    finish();
+    await Promise.all([enabling, disabling]);
+    await d.pollRtt();
+    expect(polls).toBe(0);
+    expect(f.onTarget.has(0x1234n)).toBe(true);
+    await d.clearBreakpoints();
+    expect(f.onTarget.size).toBe(0);
+    (f.session as { createRttClient?: unknown }).createRttClient = async () => ({});
+    await d.enableRtt();
+    await d.pollRtt();
+    expect(polls).toBe(1);
+  });
+
   it('polls RTT while running and services semihosting halts as output', async () => {
     const f = fakeSession();
     // First poll: an error; second: an empty channel list (freshly flashed, RAM holds no control
