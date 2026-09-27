@@ -226,7 +226,7 @@ describe('Debugger', () => {
     expect(f.calls.filter((c) => /^(resetAndHalt|reset|run)$/.test(c))).toEqual(['reset']);
   });
 
-  it('lifts its own hardware breakpoint at the PC for a statement step, and not for an instruction step', async () => {
+  it('lifts its own hardware breakpoint at the PC for statement and instruction steps', async () => {
     const f = fakeSession();
     const d = new Debugger(f.session);
     await d.loadDebugInfo(new Uint8Array([1]));
@@ -239,8 +239,11 @@ describe('Debugger', () => {
     f.calls.length = 0;
     await d.setInstructionBreakpoints([0x1238n]); // the fake's step lands on 0x1238
     f.calls.length = 0;
+    // On an H563 an instruction step after a halt request stayed on the breakpoint: probe-rs
+    // only steps off breakpoints it knows it stopped on.
     await d.step('instruction');
-    expect(f.calls.filter((c) => c !== 'status')).toEqual(['clear', 'step']);
+    expect(f.calls.filter((c) => c !== 'status')).toEqual(['clear', 'clear 1238', 'step', 'set 1238']);
+    expect(f.onTarget.has(0x1238n)).toBe(true);
   });
 
   it('queues RTT disable behind a pending enable and retains breakpoint ownership', async () => {

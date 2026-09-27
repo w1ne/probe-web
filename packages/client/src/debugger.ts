@@ -558,10 +558,11 @@ export class Debugger extends EventTarget {
       await this.session.raw.clearCoreDebugState(this.coreIndex);
       this.invalidate();
       const pc = this.lastStop?.pc;
-      // A statement step that starts on one of our hardware breakpoints can stop on that same
-      // breakpoint without moving (seen with step out on a Cortex-M33). Lift the breakpoint for
-      // the duration of the step and put it back afterwards.
-      const lifted = mode !== 'instruction' && pc !== undefined && this.hwRefs.has(pc) ? pc : null;
+      // A step that starts on one of our hardware breakpoints can stop on that same breakpoint
+      // without moving (seen with step out, and with an instruction step after a halt request on a
+      // Cortex-M33, where probe-rs no longer knows it stopped on a breakpoint). Lift the breakpoint
+      // for the duration of the step and put it back afterwards.
+      const lifted = pc !== undefined && this.hwRefs.has(pc) ? pc : null;
       if (lifted !== null) await this.core.raw.clearHwBreakpoints(new BigUint64Array([lifted]));
       let res: Wire.StepResponse;
       try {
